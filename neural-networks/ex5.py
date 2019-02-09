@@ -29,15 +29,22 @@ def test_divider(data):
     return int(TRAIN_DATA_RATIO * len(data))
 
 
-x_raw_train = np.reshape(ages[:test_divider(ages)], (test_divider(ages), 1))
-y_raw_train = np.reshape(weights[:test_divider(weights)], (test_divider(weights), 1))
-
-x_raw_test = np.reshape(ages[test_divider(ages):], (data_size - test_divider(ages), 1))
-y_raw_test = np.reshape(weights[test_divider(weights):], (data_size - test_divider(weights), 1))
+def proposed_model_func(x):
+    return 233.846 * (1 - np.exp(-0.006042 * x))
 
 
-def main(number_of_neurons):
-    print(f'Running for NN with', number_of_neurons, 'hidden neurons')
+ages_processed = np.interp(ages, (np.min(ages), np.max(ages)), (0, 1))
+weights_processed = np.interp(weights, (np.min(weights), np.max(weights)), (0, 1))
+x_raw_train = np.reshape(ages_processed[:test_divider(ages_processed)], (test_divider(ages_processed), 1))
+y_raw_train = np.reshape(weights_processed[:test_divider(weights_processed)], (test_divider(weights_processed), 1))
+
+x_raw_test = np.reshape(ages_processed[test_divider(ages_processed):], (data_size - test_divider(ages_processed), 1))
+y_raw_test = np.reshape(weights_processed[test_divider(weights_processed):],
+                        (data_size - test_divider(weights_processed), 1))
+
+
+def main(number_of_neurons, number_of_epoch=18):
+    print(f'Running for NN with', number_of_neurons, 'hidden neurons,', number_of_epoch, 'epochs')
     # Defining input size, hidden layer size, output size and batch size respectively
     n_in, n_h, n_out, batch_size = 1, number_of_neurons, 1, 5000
 
@@ -59,17 +66,17 @@ def main(number_of_neurons):
     criterion = torch.nn.MSELoss()
 
     # Construct the optimizer (Stochastic Gradient Descent in this case)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 
     # Gradient Descent
-    for epoch in range(1200):
+    for epoch in range(number_of_epoch):
         # Forward pass: Compute predicted y by passing x to the model
         y_pred = model(x_train)
 
         # Compute and print loss
         loss = criterion(y_pred, y_train)
-        if epoch % 100 == 0:
-            print('epoch: ', epoch, ' loss: ', loss.item())
+        # if epoch % 100 == 0:
+        # print('epoch: ', epoch, ' loss: ', loss.item())
 
         # Zero gradients, perform a backward pass, and update the weights.
         optimizer.zero_grad()
@@ -86,8 +93,11 @@ def main(number_of_neurons):
     print('Train loss: ', loss.item())
     print('Test loss : ', test_loss.item())
 
+    y_proposed = np.array(list(map(proposed_model_func, ages)))
+    proposed_loss = np.mean((np.array(weights) - y_proposed) ** 2)
+    print('Proposed loss : ', proposed_loss)
 
-# for x in range(1, 20, 2):
-#     main(x)
 
-main(10)
+# for n in range(1, 100):
+#     main(5, n)
+main(5, 18)
